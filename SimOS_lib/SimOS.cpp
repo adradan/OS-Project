@@ -8,9 +8,11 @@
 SimOS::SimOS(int numberOfDisks, unsigned long long int amountOfRam) {
     this->numberOfDisks = numberOfDisks;
     this->amountOfRam = amountOfRam;
-    this->diskSize = amountOfRam / numberOfDisks;
-    this->processMemory = std::vector<Process>();
-    this->memoryUsage = MemoryUsage(numberOfDisks);
+    diskSize = amountOfRam / numberOfDisks;
+    processMemory = std::vector<Process>();
+    numberOfPartitions = amountOfRam / PARTITION_SIZE;
+    memoryUsage = MemoryUsage(numberOfPartitions, MemoryItem{});
+    disks = std::vector<DiskQueue>(numberOfDisks, DiskQueue{});
 }
 
 bool SimOS::NewProcess(int priority, unsigned long long size) {
@@ -20,11 +22,11 @@ bool SimOS::NewProcess(int priority, unsigned long long size) {
 
     bool hasSpace = false;
     unsigned long long currentSpace = 0;
-    int smallestDiskNumber = 0;
-    int currentDiskNumber = 0;
+    int smallestPartitionNumber = 0;
+    int currentPartitionNumber = 0;
 
-    for (auto disk : this->memoryUsage) {
-        std::cout << "Current Disk: " << currentDiskNumber << std::endl;
+    for (auto disk : memoryUsage) {
+        std::cout << "Current Partition: " << currentPartitionNumber << std::endl;
         if (currentSpace >= size) {
             hasSpace = true;
             break;
@@ -32,11 +34,11 @@ bool SimOS::NewProcess(int priority, unsigned long long size) {
         if (disk.PID != 0) {
             // Encountered an existing process in the way, reset space counter
             currentSpace = 0;
-            smallestDiskNumber = currentDiskNumber + 1;
+            smallestPartitionNumber = currentPartitionNumber + 1;
         } else {
-            currentSpace += this->diskSize;
+            currentSpace += PARTITION_SIZE;
         }
-        currentDiskNumber++;
+        currentPartitionNumber++;
         std::cout << "Current Space: " << currentSpace << std::endl;
     }
     // In case the last disk provides enough space, we double-check the available space
@@ -47,19 +49,19 @@ bool SimOS::NewProcess(int priority, unsigned long long size) {
         return hasSpace;
     }
 
-    unsigned long long newItemAddress = smallestDiskNumber * this->diskSize;
+    unsigned long long newItemAddress = smallestPartitionNumber * PARTITION_SIZE;
     int newPID = getNewPID();
     MemoryItem newItem = MemoryItem{newItemAddress, size, newPID};
     Process newProcess = Process{priority, newPID};
 
-    this->readyQueue.addToReadyQueue(newProcess.priority, newItem);
+    this->readyQueue.addToReadyQueue(newProcess.priority, newProcess.PID);
 
-    int disksToUse = std::ceil((double) size / (double) this->diskSize);
-    for (int i = 0; i < disksToUse; i++) {
-        this->memoryUsage[smallestDiskNumber + i] = newItem;
+    int partitionsToUse = std::ceil((double) size / (double) PARTITION_SIZE);
+    for (int i = 0; i < partitionsToUse; i++) {
+        this->memoryUsage[smallestPartitionNumber + i] = newItem;
     }
     this->processMemory.push_back(newProcess);
-    std::cout << "Smallest Disk: " << smallestDiskNumber << " PID: " << newItem.PID << " Disks Used: " << disksToUse << std::endl;
+    std::cout << "Smallest Disk: " << smallestPartitionNumber << " PID: " << newItem.PID << " Partitions Used: " << partitionsToUse << std::endl;
     return hasSpace;
 }
 
@@ -76,15 +78,31 @@ void SimOS::SimWait() {
 }
 
 void SimOS::DiskReadRequest(int diskNumber, std::string fileName) {
+    ReadyQueueItem processUsingCPU = readyQueue.getQueue().at(0);
+    FileReadRequest newReadRequest = FileReadRequest{processUsingCPU.PID, fileName};
 
+    readyQueue.removeFromQueue(processUsingCPU.PID);
+    disks[diskNumber].push(newReadRequest);
 }
 
 void SimOS::DiskJobCompleted(int diskNumber) {
+    Process foundProcess;
+    for (auto process : processMemory) {
+        if (process.PID == disks[diskNumber].front().PID) {
+            foundProcess = process;
+        }
+    }
 
+    if (readyQueue.getQueue().at(0).priority == foundProcess.priority) {
+        readyQueue.addToReadyQueue(foundProcess.priority, foundProcess.PID, 0);
+    } else {
+        readyQueue.addToReadyQueue(foundProcess.priority, foundProcess.PID);
+    }
+    disks[diskNumber].pop();
 }
 
 int SimOS::GetCPU() {
-    int runningPID = memoryUsage.at(0).PID;
+    int runningPID = readyQueue.getQueue().at(0).PID;
     if (runningPID == 0) {
         std::cout << "CPU is IDLE. Instruction ignored." << std::endl;
         return 0;
@@ -95,43 +113,36 @@ int SimOS::GetCPU() {
 std::vector<int> SimOS::GetReadyQueue() {
     std::vector<int> processPIDList;
     for (auto readyQueueItem : readyQueue.getQueue()) {
-        if (readyQueueItem.item.PID == 0) {
+        if (readyQueueItem.PID == 0) {
             continue;
         }
-        processPIDList.push_back(readyQueueItem.item.PID);
+        processPIDList.push_back(readyQueueItem.PID);
     }
     return processPIDList;
 }
 
 MemoryUsage SimOS::GetMemory() {
     MemoryUsage processesUsingMemory;
-    for (auto process : processMemory) {
-        if (process.PID == 0) {
-            continue;
-        }
-        for (auto mem : memoryUsage) {
-            if (mem.PID == process.PID) {
-                processesUsingMemory.push_back(mem);
-                break;
-            }
+    MemoryItem lastFoundProcess{};
+    for (auto mem : memoryUsage) {
+        if (mem.PID != 0 && mem.PID != lastFoundProcess.PID) {
+            lastFoundProcess = mem;
+            processesUsingMemory.push_back(mem);
         }
     }
-    std::cout << "====" << std::endl;
-    for (auto p : processesUsingMemory) {
-        std::cout << p.itemAddress << std::endl;
+    if (processesUsingMemory.empty()) {
+        std::cout << "CPU is idle. Instruction ignored." << std::endl;
     }
-    std::cout << "====" << std::endl;
     return processesUsingMemory;
 }
 
 FileReadRequest SimOS::GetDisk(int diskNumber) {
-    if (diskQueue.empty()) {
-        return FileReadRequest();
-    }
+    DiskQueue currentQueue = disks.at(diskNumber);
+    return currentQueue.front();
 }
 
 std::queue<FileReadRequest> SimOS::GetDiskQueue(int diskNumber) {
-    return std::queue<FileReadRequest>();
+    return disks.at(diskNumber);
 }
 
 int SimOS::getNumberOfDisks() const {
@@ -153,19 +164,39 @@ int SimOS::getNewPID() {
 
 
 // Ready Queue
-void ReadyQueue::addToReadyQueue(int priority, MemoryItem item) {
-    ReadyQueueItem newQueueItem = ReadyQueueItem{priority, item};
-    int posToAdd = 0;
+void ReadyQueue::addToReadyQueue(int priority, int PID) {
+    ReadyQueueItem newQueueItem = ReadyQueueItem{priority, PID};
+    if (queue.empty()) {
+        queue.insert(queue.begin(), newQueueItem);
+        return;
+    }
 
-    for (auto itr = this->queue.begin(); itr != this->queue.end(); itr++, posToAdd++) {
-        ReadyQueueItem currentItem = *itr;
+    for (int i = 0; i < queue.size(); i++) {
+        ReadyQueueItem currentItem = queue.at(i);
         if (currentItem.priority > newQueueItem.priority) {
+            queue.insert(queue.begin() + i, newQueueItem);
             break;
         }
     }
-    this->queue.insert(this->queue.begin() + posToAdd, newQueueItem);
+}
+
+void ReadyQueue::addToReadyQueue(int priority, int PID, int pos) {
+    ReadyQueueItem newQueueItem = ReadyQueueItem{priority, PID};
+    if (pos < 0 || pos > queue.size()) {
+        return;
+    }
+    queue.insert(queue.begin() + pos, newQueueItem);
 }
 
 std::vector<ReadyQueueItem> ReadyQueue::getQueue() {
     return this->queue;
+}
+
+void ReadyQueue::removeFromQueue(int PID) {
+    for (int i = 0; i < queue.size(); i++) {
+        ReadyQueueItem queueItem = queue.at(i);
+        if (queueItem.PID == PID) {
+            queue.erase(queue.begin() + i);
+        }
+    }
 }

@@ -103,6 +103,9 @@ TEST_F(SimOSFixture, NewProcessFailZero) {
 TEST_F(SimOSFixture, MemReturnsOnePID) {
     os->NewProcess(1, 20);
     auto mem = os->GetMemory();
+    for (auto m : mem) {
+        std::cout << m.PID << std::endl;
+    }
     EXPECT_EQ(mem[0].PID, 1);
     EXPECT_EQ(mem.size(), 1);
 }
@@ -121,15 +124,20 @@ TEST_F(SimOSFixture, MemReturnsProperAddresses) {
     EXPECT_EQ(mem[2].PID, 3);
 }
 
+TEST_F(SimOSFixture, GetEmptyMemory) {
+    auto mem = os->GetMemory();
+    EXPECT_EQ(mem.empty(), true);
+}
+
 TEST_F(SimOSFixture, MemReturnsProperAddressesIrregularSize) {
     os->NewProcess(1, 20);
-    // Will use 1 extra disk
+    // Will use 1 extra partition (total of 8)
     os->NewProcess(1, 30);
     os->NewProcess(1, 20);
     auto mem = os->GetMemory();
     EXPECT_EQ(mem[0].itemAddress, 0);
     EXPECT_EQ(mem[1].itemAddress, 20);
-    EXPECT_EQ(mem[2].itemAddress, 60);
+    EXPECT_EQ(mem[2].itemAddress, 52);
 
     EXPECT_EQ(mem[0].PID, 1);
     EXPECT_EQ(mem[1].PID, 2);
@@ -146,3 +154,34 @@ TEST_F(SimOSFixture, GetWorkingCPU) {
     int x = os->GetCPU();
     EXPECT_EQ(x, 1);
 }
+
+TEST_F(SimOSFixture, ReadyQueueEmpty) {
+    auto queue = os->GetReadyQueue();
+    EXPECT_EQ(queue.empty(), true);
+}
+
+TEST_F(SimOSFixture, ReadyQueueOneItem) {
+    os->NewProcess(1, 20);
+    auto queue = os->GetReadyQueue();
+    EXPECT_EQ(queue.size(), 1);
+    EXPECT_EQ(queue.at(0), 1);
+}
+
+TEST_F(SimOSFixture, ReadyQueueReturnsInPriorityOrder) {
+    os->NewProcess(1, 20);
+    os->NewProcess(2, 20);
+    auto queue = os->GetReadyQueue();
+    for (int i = 0; i < queue.size(); i++) {
+        EXPECT_EQ(queue.at(i), i + 1);
+    }
+}
+
+TEST_F(SimOSFixture, ReadyQueueReturnsPriorityOrderUnorderedAdd) {
+    os->NewProcess(2, 20);
+    os->NewProcess(1, 20);
+
+    auto queue = os->GetReadyQueue();
+    EXPECT_EQ(queue.at(0), 2);
+    EXPECT_EQ(queue.at(1), 1);
+}
+

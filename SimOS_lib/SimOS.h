@@ -21,7 +21,7 @@ struct MemoryItem {
 
 struct ReadyQueueItem {
     int priority;
-    MemoryItem item;
+    int PID;
 };
 
 using MemoryUsage = std::vector<MemoryItem>;
@@ -31,11 +31,15 @@ struct Process {
     int PID{0};
 };
 
+using DiskQueue = std::queue<FileReadRequest>;
+
 class ReadyQueue {
 private:
     std::vector<ReadyQueueItem> queue;
 public:
-    void addToReadyQueue(int priority, MemoryItem item);
+    void addToReadyQueue(int priority, int PID);
+    void addToReadyQueue(int priority, int PID, int pos);
+    void removeFromQueue(int PID);
     std::vector<ReadyQueueItem> getQueue();
 };
 
@@ -43,14 +47,18 @@ class SimOS {
 private:
     int latestPID = 0;
     int numberOfDisks;
+    int numberOfPartitions;
     unsigned long long amountOfRam;
     unsigned long long diskSize;
 
-    // Process Memory and Memory Usage have a 1:1 relationship
+    static const int PARTITION_SIZE = 4;
+
+    // Process Memory and Memory Usage have a 1:Many relationship
+    // 1 Process can use many disks
     std::vector<Process> processMemory;
     MemoryUsage memoryUsage;
     ReadyQueue readyQueue;
-    std::queue<FileReadRequest> diskQueue;
+    std::vector<DiskQueue> disks;
 
     int getNewPID();
 public:
