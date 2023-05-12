@@ -13,5 +13,7 @@ include_directories(SimOS_lib)
 target_link_libraries(SimOS_lib)
 
 target_include_directories(Google_Tests_run PUBLIC SimOS_lib)
+add_executable(Shostak_test SimOS_lib/no_edits_test.cpp)
+target_link_libraries(Shostak_test SimOS_lib)
 #target_include_directories(SimOS_lib PUBLIC SimOS_tests)
 

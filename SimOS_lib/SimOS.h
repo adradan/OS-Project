@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <map>
 #include "gtest/gtest.h"
 
 struct FileReadRequest {
@@ -19,47 +20,33 @@ struct MemoryItem {
     int PID; // Process PID using this memory chunk
 };
 
-struct ReadyQueueItem {
-    int priority;
-    int PID;
-};
-
 using MemoryUsage = std::vector<MemoryItem>;
 
-struct Process {
+struct Process : public MemoryItem {
     int priority;
-    int PID{0};
 };
+
+using ProcessUsage = std::vector<Process>;
 
 using DiskQueue = std::queue<FileReadRequest>;
 
-class ReadyQueue {
-private:
-    std::vector<ReadyQueueItem> queue;
-public:
-    void addToReadyQueue(int priority, int PID);
-    void addToReadyQueue(int priority, int PID, int pos);
-    void removeFromQueue(int PID);
-    std::vector<ReadyQueueItem> getQueue();
+struct Disk {
+    DiskQueue queue = std::queue<FileReadRequest>();
+    FileReadRequest runningRequest = FileReadRequest();
 };
 
 class SimOS {
 private:
     int latestPID = 0;
     int numberOfDisks;
-    int numberOfPartitions;
     unsigned long long amountOfRam;
-    unsigned long long diskSize;
+    int runningProcess = 0;
 
-    static const int PARTITION_SIZE = 4;
-
-    // Process Memory and Memory Usage have a 1:Many relationship
-    // 1 Process can use many disks
-    std::vector<Process> processMemory;
-    MemoryUsage memoryUsage;
-    ReadyQueue readyQueue;
-    std::vector<DiskQueue> disks;
-
+    MemoryUsage memUsage;
+    // key: PID, val: priority
+    std::map<int, int> priorities;
+    std::vector<Disk> disks;
+    std::vector<int> readyQueue;
 public:
     SimOS(int numberOfDisks, unsigned long long amountOfRam);
     bool NewProcess(int priority, unsigned long long size);
@@ -74,14 +61,10 @@ public:
     FileReadRequest GetDisk(int diskNumber);
     std::queue<FileReadRequest> GetDiskQueue(int diskNumber);
 
-    int getNumberOfDisks() const;
-
-    unsigned long long int getAmountOfRam() const;
-
-    unsigned long long int getSizeOfDisk() const;
-
     int getNewPID();
-    Process getProcess(int PID);
+    void addToReadyQueue(int PID, int priority);
+    unsigned long long findAvailableMemory(unsigned long long size);
+    void swapRunningProcess(int newPID);
 };
 
 #endif //SIMOS_SIMOS_H

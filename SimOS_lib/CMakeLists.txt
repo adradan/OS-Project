@@ -16,5 +16,5 @@ set(CMAKE_CXX_STANDARD 17)
 #include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 
-add_library(SimOS_lib STATIC SimOS.cpp SimOS.h)
+add_library(SimOS_lib STATIC SimOS.cpp SimOS.h tests.cpp)
 target_link_libraries(SimOS_lib gtest gtest_main)

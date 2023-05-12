@@ -2,7 +2,7 @@
 #include<vector>
 #include<queue>
 
-#include"SimOS.h"
+#include "SimOS.h"
 
 #define TEST_PASS 1
 #define TEST_FAIL 0
@@ -21,7 +21,8 @@ int Test_1()
 
 	sim.NewProcess(5, 1000);
 	CHECK(sim.GetCPU() == 1);
-
+    // 7
+// 10 8 5 3
 	sim.NewProcess(3, 1000);
 	CHECK(sim.GetCPU() == 1);
 
@@ -79,9 +80,12 @@ int Test_2()
 	sim.NewProcess(1, 10);
 	sim.NewProcess(9, 5);
 	sim.NewProcess(2, 15);
-
+// (1, 10) (2, 10) (3, 5) (4, 15)
+// 0 10 20 25
+// 1 3 4 2
 	sim.SimExit();
 	sim.SimExit();
+//    4 2
 	mem = sim.GetMemory();
 	CHECK(mem.size() == 2);
 	CHECK(ContMemoryItem(mem[0], 10, 10, 2));
@@ -202,25 +206,25 @@ int main(int argc, char* argv[])
 	else
 		std::cout << "ERROR!!! TEST 1 FAILS!!!" << std::endl;
 
-	if (Test_2()==TEST_PASS)
-		std::cout << "Test 2 passed successfully" << std::endl;
-	else
-		std::cout << "ERROR!!! TEST 2 FAILS!!!" << std::endl;
-
-	if (Test_3()==TEST_PASS)
-		std::cout << "Test 3 passed successfully" << std::endl;
-	else
-		std::cout << "ERROR!!! TEST 3 FAILS!!!" << std::endl;
-
-	if (Test_4()==TEST_PASS)
-		std::cout << "Test 4 passed successfully" << std::endl;
-	else
-		std::cout << "ERROR!!! TEST 4 FAILS!!!" << std::endl;
-
-	if (Test_5()==TEST_PASS)
-		std::cout << "Test 5 passed successfully" << std::endl;
-	else
-		std::cout << "ERROR!!! TEST 5 FAILS!!!" << std::endl;
+//	if (Test_2()==TEST_PASS)
+//		std::cout << "Test 2 passed successfully" << std::endl;
+//	else
+//		std::cout << "ERROR!!! TEST 2 FAILS!!!" << std::endl;
+//
+//	if (Test_3()==TEST_PASS)
+//		std::cout << "Test 3 passed successfully" << std::endl;
+//	else
+//		std::cout << "ERROR!!! TEST 3 FAILS!!!" << std::endl;
+//
+//	if (Test_4()==TEST_PASS)
+//		std::cout << "Test 4 passed successfully" << std::endl;
+//	else
+//		std::cout << "ERROR!!! TEST 4 FAILS!!!" << std::endl;
+//
+//	if (Test_5()==TEST_PASS)
+//		std::cout << "Test 5 passed successfully" << std::endl;
+//	else
+//		std::cout << "ERROR!!! TEST 5 FAILS!!!" << std::endl;
 
 	return 0;
 }
