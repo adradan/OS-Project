@@ -13,7 +13,7 @@ add_subdirectory(lib)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 include_directories(lib/googlemock/include)
 
-add_executable(Google_Tests_run SimOSTest.cpp)
+add_executable(Google_Tests_run no_edits_test.cpp)
 
 target_link_libraries(Google_Tests_run SimOS_lib)
 
