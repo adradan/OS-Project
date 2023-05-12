@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <unistd.h>
 #include "SimOS.h"
 
 
@@ -66,7 +67,11 @@ bool SimOS::NewProcess(int priority, unsigned long long size) {
 }
 
 bool SimOS::SimFork() {
-    return false;
+    pid_t childPid = fork();
+    ReadyQueueItem currentQueueItem = readyQueue.getQueue().at(0);
+    Process currentProcess = getProcess(currentQueueItem.PID);
+    std::cout << processMemory.at(0).PID << std::endl;
+    return true;
 }
 
 void SimOS::SimExit() {
@@ -102,11 +107,11 @@ void SimOS::DiskJobCompleted(int diskNumber) {
 }
 
 int SimOS::GetCPU() {
-    int runningPID = readyQueue.getQueue().at(0).PID;
-    if (runningPID == 0) {
+    if (readyQueue.getQueue().empty()) {
         std::cout << "CPU is IDLE. Instruction ignored." << std::endl;
         return 0;
     }
+    int runningPID = readyQueue.getQueue().at(0).PID;
     return runningPID;
 }
 
@@ -162,6 +167,14 @@ int SimOS::getNewPID() {
     return this->latestPID;
 }
 
+Process SimOS::getProcess(int PID) {
+    for (auto process : processMemory) {
+        if (process.PID == PID) {
+            return process;
+        }
+    }
+    return Process{};
+}
 
 // Ready Queue
 void ReadyQueue::addToReadyQueue(int priority, int PID) {

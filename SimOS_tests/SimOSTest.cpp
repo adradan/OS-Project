@@ -24,7 +24,7 @@ int getReadyQueuePos(int PID, ReadyQueue* queue) {
     int i = 0;
     auto q = queue->getQueue();
     for (i = 0; i < q.size(); i++) {
-        if (q.at(i).item.PID == PID) {
+        if (q.at(i).PID == PID) {
             break;
         }
     }
@@ -32,34 +32,34 @@ int getReadyQueuePos(int PID, ReadyQueue* queue) {
 }
 
 TEST_F(ReadyQueueFixture, AddOneReadyQueue) {
-    queue->addToReadyQueue(1, genericItem);
+    queue->addToReadyQueue(1, genericItem.PID);
 
     EXPECT_EQ(queue->getQueue().size(), 1);
 }
 
 TEST_F(ReadyQueueFixture, AddInBtwnSamePriorityQueue) {
-    queue->addToReadyQueue(1, genericItem);
+    queue->addToReadyQueue(1, genericItem.PID);
     genericItem.PID = 2;
-    queue->addToReadyQueue(2, genericItem);
+    queue->addToReadyQueue(2, genericItem.PID);
     genericItem.PID = 3;
-    queue->addToReadyQueue(1, genericItem);
+    queue->addToReadyQueue(1, genericItem.PID);
 
     int queuePos = getReadyQueuePos(3, queue);
     EXPECT_EQ(queuePos, 1);
 }
 
 TEST_F(ReadyQueueFixture, AddHigherPriority) {
-    queue->addToReadyQueue(2, genericItem);
+    queue->addToReadyQueue(2, genericItem.PID);
     genericItem.PID = 2;
-    queue->addToReadyQueue(1, genericItem);
+    queue->addToReadyQueue(1, genericItem.PID);
     int queuePos = getReadyQueuePos(2, queue);
     EXPECT_EQ(queuePos, 0);
 }
 
 TEST_F(ReadyQueueFixture, AddLowerPriority) {
-    queue->addToReadyQueue(1, genericItem);
+    queue->addToReadyQueue(1, genericItem.PID);
     genericItem.PID = 2;
-    queue->addToReadyQueue(2, genericItem);
+    queue->addToReadyQueue(2, genericItem.PID);
     int queuePos = getReadyQueuePos(2, queue);
     EXPECT_EQ(queuePos, 1);
 }
@@ -183,5 +183,11 @@ TEST_F(SimOSFixture, ReadyQueueReturnsPriorityOrderUnorderedAdd) {
     auto queue = os->GetReadyQueue();
     EXPECT_EQ(queue.at(0), 2);
     EXPECT_EQ(queue.at(1), 1);
+}
+
+TEST_F(SimOSFixture, Fork) {
+    os->NewProcess(1, 20);
+    os->SimFork();
+    EXPECT_EQ(true, true);
 }
 

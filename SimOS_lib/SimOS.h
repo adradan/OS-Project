@@ -60,7 +60,6 @@ private:
     ReadyQueue readyQueue;
     std::vector<DiskQueue> disks;
 
-    int getNewPID();
 public:
     SimOS(int numberOfDisks, unsigned long long amountOfRam);
     bool NewProcess(int priority, unsigned long long size);
@@ -80,6 +79,9 @@ public:
     unsigned long long int getAmountOfRam() const;
 
     unsigned long long int getSizeOfDisk() const;
+
+    int getNewPID();
+    Process getProcess(int PID);
 };
 
 #endif //SIMOS_SIMOS_H
