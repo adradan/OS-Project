@@ -8,6 +8,7 @@
 #include <queue>
 #include <map>
 #include "DiskQueue.h"
+#include "ReadyQueue.h"
 
 //struct FileReadRequest {
 //    int PID{0};
@@ -43,7 +44,6 @@ struct Process {
 class SimOS {
 private:
     int latestPID = 0;
-    int numberOfDisks;
     unsigned long long amountOfRam;
     // PID of running process
     int runningProcessPID = 0;
@@ -52,7 +52,7 @@ private:
     // key: PID, val: Process
     std::map<int, Process> processes;
     std::vector<Disk> disks;
-    std::vector<int> readyQueue;
+    ReadyQueue readyQueue;
 public:
     SimOS(int numberOfDisks, unsigned long long amountOfRam);
     bool NewProcess(int priority, unsigned long long size);

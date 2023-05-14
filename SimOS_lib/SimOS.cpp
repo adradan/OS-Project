@@ -9,7 +9,6 @@
 bool compareMemAddress(MemoryItem item1, MemoryItem item2);
 
 SimOS::SimOS(int numberOfDisks, unsigned long long int amountOfRam) {
-    this->numberOfDisks = numberOfDisks;
     this->amountOfRam = amountOfRam;
     this->disks = std::vector<Disk>(numberOfDisks, Disk());
 }
@@ -80,31 +79,21 @@ void SimOS::SimWait() {
 }
 
 void SimOS::DiskReadRequest(int diskNumber, std::string fileName) {
-    auto newRequest = FileReadRequest{runningProcessPID, fileName};
-    Disk disk = disks.at(diskNumber);
-    if (disk.diskQueue.empty() && disk.runningRequest.PID == 0) {
-        disks.at(diskNumber).runningRequest = newRequest;
-    } else {
-        disks.at(diskNumber).diskQueue.push(newRequest);
-    }
+    disks.at(diskNumber).newRequest(runningProcessPID, fileName);
     processes[runningProcessPID].requestingDisk = diskNumber;
-    if (readyQueue.empty()) {
-        runningProcessPID = 0;
-    } else {
-        moveUpReadyQueue();
-    }
+    int newRunner = readyQueue.moveUpQueue();
+    runningProcessPID = newRunner;
+//    if (readyQueue.empty()) {
+//        runningProcessPID = 0;
+//    } else {
+//        moveUpReadyQueue();
+//    }
 }
 
 void SimOS::DiskJobCompleted(int diskNumber) {
-    Disk disk = disks.at(diskNumber);
-    FileReadRequest finishedJob = disk.runningRequest;
-    int finishedPID = finishedJob.PID;
-    FileReadRequest nextRequest = FileReadRequest{};
-    if (!disk.diskQueue.empty()) {
-        nextRequest = disk.diskQueue.front();
-        disks.at(diskNumber).diskQueue.pop();
-    }
-    disks.at(diskNumber).runningRequest = nextRequest;
+    FileReadRequest runningRequest = disks.at(diskNumber).getRunningRequest();
+    int finishedPID = runningRequest.PID;
+    disks.at(diskNumber).moveUpQueue();
     processes[finishedPID].requestingDisk = -1;
     addToReadyQueue(finishedPID, findPriority(finishedPID));
 }
@@ -122,11 +111,11 @@ MemoryUsage SimOS::GetMemory() {
 }
 
 FileReadRequest SimOS::GetDisk(int diskNumber) {
-    return disks.at(diskNumber).runningRequest;
+    return disks.at(diskNumber).getRunningRequest();
 }
 
 std::queue<FileReadRequest> SimOS::GetDiskQueue(int diskNumber) {
-    return disks.at(diskNumber).diskQueue;
+    return disks.at(diskNumber).getQueue();
 }
 
 int SimOS::getNewPID() {
@@ -240,6 +229,7 @@ void SimOS::cascadeTerminate(int PID) {
     }
     removeFromMemory(PID);
     removeFromDisk(PID);
+    processes[PID].requestingDisk = -1;
 }
 
 MemoryItem SimOS::findPID(int PID) {
@@ -300,41 +290,7 @@ void SimOS::removeFromDisk(int PID) {
     if (process.requestingDisk == -1) {
         return;
     }
-    Disk disk = disks.at(process.requestingDisk);
-
-    if (disk.runningRequest.PID == PID) {
-        int diskNumber = process.requestingDisk;
-        Disk disk = disks.at(diskNumber);
-        FileReadRequest finishedJob = disk.runningRequest;
-        int finishedPID = finishedJob.PID;
-        FileReadRequest nextRequest = FileReadRequest{};
-        if (!disk.diskQueue.empty()) {
-            nextRequest = disk.diskQueue.front();
-            disks.at(diskNumber).diskQueue.pop();
-        }
-        disks.at(diskNumber).runningRequest = nextRequest;
-        processes[finishedPID].requestingDisk = -1;
-        return;
-    }
-    std::queue<FileReadRequest> newQueue;
-    std::queue<FileReadRequest> diskQueue = disk.diskQueue;
-    while (!diskQueue.empty() && diskQueue.front().PID != PID) {
-        newQueue.push(diskQueue.front());
-        diskQueue.pop();
-    }
-
-    if (diskQueue.empty()) {
-        return;
-    }
-    // We found the PID
-    diskQueue.pop();
-    // 1 2 3 4 5 6
-    // (1 2 3) (5 6)
-    while (!diskQueue.empty()) {
-        newQueue.push(diskQueue.front());
-        diskQueue.pop();
-    }
-    disks.at(process.requestingDisk).diskQueue = newQueue;
+    disks.at(process.requestingDisk).removeFromDisk(PID);
 }
 
 int SimOS::findZombie(int PID) {
