@@ -80,8 +80,7 @@ int Test_2()
 	sim.NewProcess(1, 10);
 	sim.NewProcess(9, 5);
 	sim.NewProcess(2, 15);
-// (1, 10) (2, 10) (3, 5) (4, 15)
-// 0 10 20 25
+// (1, 0, 10) (2, 10, 10) (3, 20, 5) (4, 25, 40)
 // 1 3 4 2
 	sim.SimExit();
 	sim.SimExit();
@@ -90,9 +89,10 @@ int Test_2()
 	CHECK(mem.size() == 2);
 	CHECK(ContMemoryItem(mem[0], 10, 10, 2));
 	CHECK(ContMemoryItem(mem[1], 25, 15, 4));
-
+// (2, 10, 10) (4, 25, 40)
 	sim.NewProcess(3, 4);
 	mem = sim.GetMemory();
+// (5, 0, 4) (2, 10, 10) (4, 25, 40)
 	CHECK(ContMemoryItem(mem[1], 20, 4, 5));
 
 	sim.NewProcess(4, 5);
@@ -192,6 +192,8 @@ int Test_5()
 	sim.NewProcess(5, 1'000'000'000);
 	sim.NewProcess(4, 30'000'000'000);
 	sim.SimExit();
+//    1'000'000'000
+//    30'000'000'000
 	CHECK(sim.NewProcess(7, 1'500'000'000) == false);
 	CHECK(sim.GetCPU() == 2);
 	CHECK(sim.GetReadyQueue().size() == 0);
@@ -206,25 +208,25 @@ int main(int argc, char* argv[])
 	else
 		std::cout << "ERROR!!! TEST 1 FAILS!!!" << std::endl;
 
-//	if (Test_2()==TEST_PASS)
-//		std::cout << "Test 2 passed successfully" << std::endl;
-//	else
-//		std::cout << "ERROR!!! TEST 2 FAILS!!!" << std::endl;
-//
-//	if (Test_3()==TEST_PASS)
-//		std::cout << "Test 3 passed successfully" << std::endl;
-//	else
-//		std::cout << "ERROR!!! TEST 3 FAILS!!!" << std::endl;
-//
-//	if (Test_4()==TEST_PASS)
-//		std::cout << "Test 4 passed successfully" << std::endl;
-//	else
-//		std::cout << "ERROR!!! TEST 4 FAILS!!!" << std::endl;
-//
-//	if (Test_5()==TEST_PASS)
-//		std::cout << "Test 5 passed successfully" << std::endl;
-//	else
-//		std::cout << "ERROR!!! TEST 5 FAILS!!!" << std::endl;
+	if (Test_2()==TEST_PASS)
+		std::cout << "Test 2 passed successfully" << std::endl;
+	else
+		std::cout << "ERROR!!! TEST 2 FAILS!!!" << std::endl;
+
+	if (Test_3()==TEST_PASS)
+		std::cout << "Test 3 passed successfully" << std::endl;
+	else
+		std::cout << "ERROR!!! TEST 3 FAILS!!!" << std::endl;
+
+	if (Test_4()==TEST_PASS)
+		std::cout << "Test 4 passed successfully" << std::endl;
+	else
+		std::cout << "ERROR!!! TEST 4 FAILS!!!" << std::endl;
+
+	if (Test_5()==TEST_PASS)
+		std::cout << "Test 5 passed successfully" << std::endl;
+	else
+		std::cout << "ERROR!!! TEST 5 FAILS!!!" << std::endl;
 
 	return 0;
 }

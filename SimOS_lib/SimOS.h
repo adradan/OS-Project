@@ -7,12 +7,12 @@
 #include <vector>
 #include <queue>
 #include <map>
-#include "gtest/gtest.h"
+#include "DiskQueue.h"
 
-struct FileReadRequest {
-    int PID{0};
-    std::string fileName{""};
-};
+//struct FileReadRequest {
+//    int PID{0};
+//    std::string fileName{""};
+//};
 
 struct MemoryItem {
     unsigned long long itemAddress;
@@ -22,29 +22,35 @@ struct MemoryItem {
 
 using MemoryUsage = std::vector<MemoryItem>;
 
-struct Process : public MemoryItem {
+struct Process {
+    MemoryItem memoryItem = MemoryItem{0, 0, 0};
     int priority;
+    bool waiting = false;
+    bool terminated = false;
+    bool zombie = false;
+    // Vector of children PIDs
+    std::vector<int> children = std::vector<int>();
+    int requestingDisk = -1;
 };
 
-using ProcessUsage = std::vector<Process>;
+//using DiskQueue = std::queue<FileReadRequest>;
 
-using DiskQueue = std::queue<FileReadRequest>;
-
-struct Disk {
-    DiskQueue queue = std::queue<FileReadRequest>();
-    FileReadRequest runningRequest = FileReadRequest();
-};
+//struct Disk {
+//    DiskQueue diskQueue = std::queue<FileReadRequest>();
+//    FileReadRequest runningRequest = FileReadRequest();
+//};
 
 class SimOS {
 private:
     int latestPID = 0;
     int numberOfDisks;
     unsigned long long amountOfRam;
-    int runningProcess = 0;
+    // PID of running process
+    int runningProcessPID = 0;
 
     MemoryUsage memUsage;
-    // key: PID, val: priority
-    std::map<int, int> priorities;
+    // key: PID, val: Process
+    std::map<int, Process> processes;
     std::vector<Disk> disks;
     std::vector<int> readyQueue;
 public:
@@ -65,6 +71,16 @@ public:
     void addToReadyQueue(int PID, int priority);
     unsigned long long findAvailableMemory(unsigned long long size);
     void swapRunningProcess(int newPID);
+    void moveUpReadyQueue();
+    void removeFromReadyQueue(int PID);
+    void removeFromMemory(int PID);
+    void cascadeTerminate(int PID);
+    MemoryItem findPID(int PID);
+    int findPriority(int PID);
+    int findParent(int PID);
+    void removeFromDisk(int PID);
+    void removeFromQueue(int PID);
+    int findZombie(int PID);
 };
 
 #endif //SIMOS_SIMOS_H
