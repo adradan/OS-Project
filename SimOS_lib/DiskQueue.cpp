@@ -8,10 +8,6 @@ DiskQueue Disk::getQueue() {
     return diskQueue;
 }
 
-void Disk::setQueue(DiskQueue queue) {
-    Disk::diskQueue = queue;
-}
-
 FileReadRequest Disk::getRunningRequest() {
     return runningRequest;
 }

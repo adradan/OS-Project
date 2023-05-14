@@ -23,10 +23,7 @@ private:
 public:
     void moveUpQueue();
     DiskQueue getQueue();
-    void setQueue(DiskQueue queue);
-
     FileReadRequest getRunningRequest();
-
     void removeFromDisk(int PID);
     void newRequest(int PID, std::string fileName);
 };

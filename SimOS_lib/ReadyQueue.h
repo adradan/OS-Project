@@ -8,13 +8,22 @@
 
 #include <vector>
 
+struct ReadyQueueItem {
+    int PID = 0;
+    int priority = -1;
+};
+
 class ReadyQueue {
 private:
-    std::vector<int> readyQueue;
+    std::vector<ReadyQueueItem> readyQueue = std::vector<ReadyQueueItem>();
+    ReadyQueueItem runningItem = ReadyQueueItem{};
+    void moveRunningToQueue(ReadyQueueItem newRunner);
 public:
-    int moveUpQueue();
+    void moveUpQueue();
     std::vector<int> getQueue();
-
+    void addToQueue(int PID, int priority);
+    int getRunningPID();
+    void removeFromQueue(int PID);
 };
 
 
